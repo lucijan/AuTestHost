@@ -7,6 +7,7 @@
 
 class MainComponent : public juce::Component,
                       public juce::AudioIODeviceCallback,
+                      public juce::MidiInputCallback,
                       public Timer
 {
 public:
@@ -50,10 +51,17 @@ private:
     void audioDeviceStopped() override;
     void audioDeviceError(const String &errorMessage) override;
 
+    void handleIncomingMidiMessage(MidiInput *source,
+                                   const MidiMessage &message) override;
+
     juce::AudioDeviceManager m_audioDeviceManager;
     juce::AudioBuffer<float> m_processBuffer;
     double m_sampleRate = 0.0;
     int m_bufferSize = 0;
+
+    juce::CriticalSection m_midiMutex;
+    juce::MidiBuffer m_midiBuffer;
+
     std::vector<std::unique_ptr<LevelMeter>> m_meters;
     std::vector<std::unique_ptr<BusComponent>> m_busComponents;
 

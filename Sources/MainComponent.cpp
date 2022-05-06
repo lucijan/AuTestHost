@@ -79,6 +79,15 @@ MainComponent::MainComponent() :
         m_audioDeviceManager.addAudioCallback(this);
     }
 
+    auto midiDevices = MidiInput::getAvailableDevices();
+    for(const auto &device : midiDevices)
+    {
+        DBG("[MIDI] " << device.name);
+        m_audioDeviceManager.setMidiInputDeviceEnabled(device.identifier, true);
+    }
+
+    m_audioDeviceManager.addMidiInputDeviceCallback(String(), this);
+
     m_auFormat = new juce::AudioUnitPluginFormat();
     m_pluginFormatManager.addFormat(m_auFormat);
 
@@ -267,8 +276,14 @@ void MainComponent::audioDeviceIOCallback(const float **inputChannelData,
 
     if(m_plugin && m_initialised)
     {
-        MidiBuffer midiMessages;
-        m_plugin->processBlock(m_processBuffer, midiMessages);
+        juce::MidiBuffer localBuffer;
+
+        {
+            juce::ScopedTryLock midiLock(m_midiMutex);
+            localBuffer.swapWith(m_midiBuffer);
+        }
+
+        m_plugin->processBlock(m_processBuffer, localBuffer);
 
         auto outBusses = m_plugin->getBusCount(false);
         auto readPtrs = m_processBuffer.getArrayOfReadPointers();
@@ -308,4 +323,13 @@ void MainComponent::audioDeviceStopped()
 void MainComponent::audioDeviceError(const String &errorMessage)
 {
     DBG("MainComponent::audioDeviceError " << errorMessage);
+}
+
+void MainComponent::handleIncomingMidiMessage(MidiInput *source,
+                                              const MidiMessage &message)
+{
+    ignoreUnused(source);
+
+    juce::ScopedLock lock(m_midiMutex);
+    m_midiBuffer.addEvent(message, 0);
 }
