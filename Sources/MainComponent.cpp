@@ -99,17 +99,8 @@ MainComponent::MainComponent() :
     auto i = 0;
     while(m_scanner->scanNextFile(true, name) && i < 1000)
     {
-        DBG("  Found: " << name);
         i++;
     }
-
-    auto failed = m_scanner->getFailedFiles();
-    for(auto plug : failed)
-    {
-        DBG("  Failed: " << plug);
-    }
-
-    DBG("Progress: " << m_scanner->getProgress());
 
     m_pluginListComponent.setTableModel(new PluginTableModel(this, &m_pluginList));
 
@@ -153,23 +144,19 @@ void MainComponent::load(const juce::PluginDescription &plug)
         auto ins = bussesLayout.inputBuses;
         for(auto in : ins)
         {
-            DBG("[in] " << in.getDescription());
             inCount += in.size();
         }
 
         auto outs = bussesLayout.outputBuses;
         for(auto out : outs)
         {
-            DBG("[out] " << out.getDescription());
             outCount += out.size();
         }
 
         auto numChannels = jmax(inCount, outCount);
-        DBG("Initializing buffer: " << numChannels);
         m_processBuffer = juce::AudioBuffer<float>(numChannels, m_bufferSize);
 
         auto outBusses = m_plugin->getBusCount(false);
-        DBG("Num Output Busses: " << outBusses);
 
         m_meters.clear();
         m_meters.resize(static_cast<size_t>(numChannels));
@@ -178,7 +165,6 @@ void MainComponent::load(const juce::PluginDescription &plug)
         for(auto busIndex = 0; busIndex < outBusses; busIndex++)
         {
             auto bus = m_plugin->getBus(false, busIndex);
-            DBG("Bus " << busIndex << ": " << bus->getName());
 
             jassert(bus->getNumberOfChannels() == 2);
             auto leftMeter = std::make_unique<LevelMeter>();
@@ -280,7 +266,10 @@ void MainComponent::audioDeviceIOCallback(const float **inputChannelData,
 
         {
             juce::ScopedTryLock midiLock(m_midiMutex);
-            localBuffer.swapWith(m_midiBuffer);
+            if(midiLock.isLocked())
+            {
+                localBuffer.swapWith(m_midiBuffer);
+            }
         }
 
         m_plugin->processBlock(m_processBuffer, localBuffer);
@@ -313,6 +302,12 @@ void MainComponent::audioDeviceAboutToStart(AudioIODevice *device)
 
     m_sampleRate = device->getCurrentSampleRate();
     m_bufferSize = device->getCurrentBufferSizeSamples();
+
+    auto outs = device->getOutputChannelNames();
+    for(const auto &out : outs)
+    {
+        DBG("[IF OUT] " << out);
+    }
 }
 
 void MainComponent::audioDeviceStopped()
