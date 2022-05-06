@@ -69,7 +69,13 @@ MainComponent::MainComponent() :
 {
     setSize (600, 400);
 
-    auto audioErr = m_audioDeviceManager.initialise(0, 2, nullptr, true);
+    juce::AudioDeviceManager::AudioDeviceSetup setup;
+    setup.useDefaultOutputChannels = false;
+    setup.outputChannels = 0xFFFFFFFF;
+
+    auto audioErr = m_audioDeviceManager.initialise(0, 2, nullptr, true,
+                                                    String(), &setup);
+
     if(audioErr.isNotEmpty())
     {
         DBG("Error initializing audio device manager: " << audioErr);
@@ -174,7 +180,8 @@ void MainComponent::load(const juce::PluginDescription &plug)
             auto rightIndex = bus->getChannelIndexInProcessBlockBuffer(1);
 
             auto busComponent = std::make_unique<BusComponent>(bus->getName(),
-                leftMeter.get(), rightMeter.get());
+                leftIndex, rightIndex, leftMeter.get(), rightMeter.get(),
+                m_ioMap.get());
 
             addAndMakeVisible(busComponent.get());
 
@@ -190,6 +197,7 @@ void MainComponent::load(const juce::PluginDescription &plug)
             if(m_editor)
             {
                 m_pluginListComponent.setVisible(false);
+
                 addAndMakeVisible(m_editor);
 
                 m_initialised = true;
@@ -208,8 +216,6 @@ void MainComponent::paint(juce::Graphics& g)
 
 void MainComponent::resized()
 {
-    m_pluginListComponent.setBounds(getLocalBounds().reduced(5));
-
     if(m_editor)
     {
         auto bounds = getLocalBounds();
@@ -238,6 +244,10 @@ void MainComponent::resized()
 
         grid.performLayout(bounds.reduced(5));
     }
+    else
+    {
+        m_pluginListComponent.setBounds(getLocalBounds().reduced(5));
+    }
 }
 
 void MainComponent::timerCallback()
@@ -255,10 +265,12 @@ void MainComponent::audioDeviceIOCallback(const float **inputChannelData,
     ignoreUnused(inputChannelData);
     ignoreUnused(numInputChannels);
 
-    AudioBuffer<float> buffer(outputChannelData, numOutputChannels, 0, numSamples);
-    buffer.clear();
+    const auto map = m_ioMap->getMap();
 
-    auto writePtrs = buffer.getArrayOfWritePointers();
+    AudioBuffer<float> outBuffer(outputChannelData, numOutputChannels, 0, numSamples);
+    outBuffer.clear();
+
+    auto writePtrs = outBuffer.getArrayOfWritePointers();
 
     if(m_plugin && m_initialised)
     {
@@ -286,7 +298,7 @@ void MainComponent::audioDeviceIOCallback(const float **inputChannelData,
                 auto sourceChannel = bus->getChannelIndexInProcessBlockBuffer(channel);
 
                 auto sourcePtr = readPtrs[sourceChannel];
-                auto addTo = writePtrs[channel];
+                auto addTo = writePtrs[map[(size_t)sourceChannel]];
 
                 m_meters[(size_t)sourceChannel]->updateLevel(sourcePtr, numSamples);
 
@@ -304,10 +316,23 @@ void MainComponent::audioDeviceAboutToStart(AudioIODevice *device)
     m_bufferSize = device->getCurrentBufferSizeSamples();
 
     auto outs = device->getOutputChannelNames();
-    for(const auto &out : outs)
+    for(auto out : outs)
     {
-        DBG("[IF OUT] " << out);
+        DBG(out);
     }
+
+    auto chanMask = device->getActiveOutputChannels();
+
+    for(auto i = 0; i < 32; i++)
+    {
+        auto active = chanMask[i];
+
+        DBG(String(i) << " " << (active ? "Y" : "N"));
+    }
+
+    DBG("Available channels: " << chanMask.countNumberOfSetBits());
+
+    m_ioMap = std::make_unique<IOMap>(device);
 }
 
 void MainComponent::audioDeviceStopped()

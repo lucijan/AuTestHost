@@ -2,6 +2,7 @@
 
 #include <JuceHeader.h>
 
+#include "IOMap.h"
 #include "LevelMeter.h"
 #include "BusComponent.h"
 
@@ -59,21 +60,24 @@ private:
     double m_sampleRate = 0.0;
     int m_bufferSize = 0;
 
+    std::unique_ptr<IOMap> m_ioMap;
+
     juce::CriticalSection m_midiMutex;
     juce::MidiBuffer m_midiBuffer;
-
-    std::vector<std::unique_ptr<LevelMeter>> m_meters;
-    std::vector<std::unique_ptr<BusComponent>> m_busComponents;
 
     juce::AudioPluginFormatManager m_pluginFormatManager;
     juce::KnownPluginList m_pluginList;
     juce::PluginListComponent m_pluginListComponent;
+    juce::TextButton m_settingsButton;
 
     juce::AudioUnitPluginFormat *m_auFormat = nullptr;
     std::unique_ptr<juce::PluginDirectoryScanner> m_scanner;
     std::unique_ptr<juce::AudioPluginInstance> m_plugin;
     juce::AudioProcessorEditor *m_editor = nullptr;
     bool m_initialised = false;
+
+    std::vector<std::unique_ptr<LevelMeter>> m_meters;
+    std::vector<std::unique_ptr<BusComponent>> m_busComponents;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(MainComponent)
 };

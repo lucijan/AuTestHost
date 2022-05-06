@@ -43,6 +43,8 @@ target_sources("${PROJECT_NAME}" PRIVATE
   Sources/LevelMeter.h
   Sources/BusComponent.cpp
   Sources/BusComponent.h
+  Sources/IOMap.cpp
+  Sources/IOMap.h
 )
 
 set(juce_modules
