@@ -12,6 +12,8 @@ string(REGEX REPLACE ".[0-9]+$" "" project_version_name ${CMAKE_PROJECT_VERSION}
 
 set(apple_bundle_id "de.decomposer.${PROJECT_NAME}")
 
+set(CMAKE_OSX_DEPLOYMENT_TARGET 14)
+
 set(CMAKE_XCODE_ATTRIBUTE_CODE_SIGN_IDENTITY "Apple Development")
 set(CMAKE_XCODE_ATTRIBUTE_DEVELOPMENT_TEAM "8T67D8T434")
 
