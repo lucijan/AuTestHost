@@ -55,6 +55,8 @@ private:
     void handleIncomingMidiMessage(MidiInput *source,
                                    const MidiMessage &message) override;
 
+    static File pluginListFile();
+
     juce::AudioDeviceManager m_audioDeviceManager;
     juce::AudioBuffer<float> m_processBuffer;
     double m_sampleRate = 0.0;

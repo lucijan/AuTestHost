@@ -97,6 +97,16 @@ MainComponent::MainComponent() :
     m_auFormat = new juce::AudioUnitPluginFormat();
     m_pluginFormatManager.addFormat(m_auFormat);
 
+    auto listFile = pluginListFile();
+    if(listFile.exists())
+    {
+        auto doc = XmlDocument::parse(listFile);
+        if(doc)
+        {
+            m_pluginList.recreateFromXml(*doc.get());
+        }
+    }
+
     m_scanner = std::make_unique<juce::PluginDirectoryScanner>(m_pluginList,
         *m_auFormat, m_auFormat->getDefaultLocationsToSearch(), true,
         juce::File(), true);
@@ -122,6 +132,8 @@ MainComponent::MainComponent() :
 
 MainComponent::~MainComponent()
 {
+    m_pluginList.createXml()->writeTo(pluginListFile());
+
     delete m_editor;
 }
 
@@ -359,4 +371,12 @@ void MainComponent::handleIncomingMidiMessage(MidiInput *source,
 
     juce::ScopedLock lock(m_midiMutex);
     m_midiBuffer.addEvent(message, 0);
+}
+
+File MainComponent::pluginListFile()
+{
+    auto file = File::getSpecialLocation(File::userApplicationDataDirectory)
+        .getChildFile("KnownPlugins.xml");
+
+    return file;
 }
