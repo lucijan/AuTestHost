@@ -22,7 +22,9 @@ StringArray IOMap::getOutputPairs() const
 
 void IOMap::map(int src, int dest)
 {
+#if DBG_OUT_LAYOUT
     DBG("Map: " << src << " => " << dest);
+#endif
 
     m_map[(size_t)src] = dest;
 }

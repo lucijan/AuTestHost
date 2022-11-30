@@ -274,6 +274,7 @@ void MainComponent::audioDeviceIOCallback(const float **inputChannelData,
 
     if(m_plugin && m_initialised)
     {
+        //TODO: needs to be member to avoid allocation during callback
         juce::MidiBuffer localBuffer;
 
         {
@@ -310,17 +311,22 @@ void MainComponent::audioDeviceIOCallback(const float **inputChannelData,
 
 void MainComponent::audioDeviceAboutToStart(AudioIODevice *device)
 {
+#if DBG_OUT_LAYOUT
     DBG("MainComponent::audioDeviceAboutToStart " << device->getName());
+#endif
 
     m_sampleRate = device->getCurrentSampleRate();
     m_bufferSize = device->getCurrentBufferSizeSamples();
 
+#if DBG_OUT_LAYOUT
     auto outs = device->getOutputChannelNames();
     for(auto out : outs)
     {
         DBG(out);
     }
+#endif
 
+#if DBG_OUT_LAYOUT
     auto chanMask = device->getActiveOutputChannels();
 
     for(auto i = 0; i < 32; i++)
@@ -331,6 +337,7 @@ void MainComponent::audioDeviceAboutToStart(AudioIODevice *device)
     }
 
     DBG("Available channels: " << chanMask.countNumberOfSetBits());
+#endif
 
     m_ioMap = std::make_unique<IOMap>(device);
 }
