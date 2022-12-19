@@ -270,9 +270,13 @@ void MainComponent::timerCallback()
     }
 }
 
-void MainComponent::audioDeviceIOCallback(const float **inputChannelData,
-    int numInputChannels, float **outputChannelData,
-                           int numOutputChannels, int numSamples)
+void MainComponent::audioDeviceIOCallbackWithContext(
+     const float* const* inputChannelData,
+     int numInputChannels,
+     float* const* outputChannelData,
+     int numOutputChannels,
+     int numSamples,
+     const AudioIODeviceCallbackContext &)
 {
     ignoreUnused(inputChannelData);
     ignoreUnused(numInputChannels);
