@@ -68,6 +68,7 @@ MainComponent::MainComponent() :
     m_pluginListComponent(m_pluginFormatManager, m_pluginList, juce::File(), nullptr, true)
 {
     setSize (600, 400);
+    setColour(ResizableWindow::backgroundColourId, Colour(0xFF2C2B2B));
 
     juce::AudioDeviceManager::AudioDeviceSetup setup;
     setup.useDefaultOutputChannels = false;
@@ -223,42 +224,50 @@ void MainComponent::load(const juce::PluginDescription &plug)
 
 void MainComponent::paint(juce::Graphics& g)
 {
-    g.fillAll(getLookAndFeel().findColour(juce::ResizableWindow::backgroundColourId));
+    g.fillAll(findColour(juce::ResizableWindow::backgroundColourId));
+
+    auto display = Desktop::getInstance().getDisplays()
+        .getDisplayForRect(getScreenBounds());
+
+    auto displayMargins = display->safeAreaInsets;
+
+    auto bounds = displayMargins.subtractedFrom(getLocalBounds());
+
+    bounds.removeFromTop(35);
+
+    ColourGradient topGrad(Colour(0xFF181818), 0.0f, 0.0f,
+                           Colour(0xFF2C2B2B), 0.0f, bounds.getY(), false);
+
+    g.setGradientFill(topGrad);
+    g.fillRect(0, 0, bounds.getWidth(), bounds.getY());
 }
 
 void MainComponent::resized()
 {
+    auto display = Desktop::getInstance().getDisplays()
+        .getDisplayForRect(getScreenBounds());
+
+    auto displayMargins = display->safeAreaInsets;
+
+    auto bounds = displayMargins.subtractedFrom(getLocalBounds());
+
     if(m_editor)
     {
-        auto bounds = getLocalBounds();
-        auto editorBounds = bounds.removeFromTop(getHeight() / 4 * 3);
-        m_editor->setBounds(editorBounds);
-
         juce::Grid grid;
-        grid.setGap(5_px);
 
+        grid.templateRows.add(35_px);
         grid.templateRows.add(1_fr);
-        grid.templateRows.add(1_fr);
 
         grid.templateColumns.add(1_fr);
-        grid.templateColumns.add(1_fr);
-        grid.templateColumns.add(1_fr);
-        grid.templateColumns.add(1_fr);
-        grid.templateColumns.add(1_fr);
-        grid.templateColumns.add(1_fr);
-        grid.templateColumns.add(1_fr);
-        grid.templateColumns.add(1_fr);
 
-        for(auto &busComp : m_busComponents)
-        {
-            grid.items.add(busComp.get());
-        }
+        grid.items.add(GridItem());
+        grid.items.add(m_editor);
 
-        grid.performLayout(bounds.reduced(5));
+        grid.performLayout(bounds);
     }
     else
     {
-        m_pluginListComponent.setBounds(getLocalBounds().reduced(5));
+        m_pluginListComponent.setBounds(bounds.reduced(5));
     }
 }
 
